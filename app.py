@@ -121,6 +121,29 @@ PRODUCT INFO:
 
         markdown_output = response.choices[0].message.content
         st.session_state["generated_md"] = markdown_output
+from datetime import datetime
+import uuid
+
+# Create docs directory if it doesn't exist
+os.makedirs("docs", exist_ok=True)
+
+# Generate metadata
+doc_id = str(uuid.uuid4())
+doc_name = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+doc_data = {
+    "id": doc_id,
+    "name": doc_name,
+    "type": doc_type,
+    "audience": audience,
+    "date": datetime.now().strftime("%Y-%m-%d"),
+    "content": markdown_output,
+    "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
+    "filename": f"{doc_id}.md"
+}
+
+# Save the document to docs/ as JSON
+with open(f"docs/{doc_id}.json", "w") as f:
+    json.dump(doc_data, f, indent=2)
 
        
 
