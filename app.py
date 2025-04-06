@@ -1,7 +1,12 @@
+import os
+from dotenv import load_dotenv
+load_dotenv()  # ✅ Load environment variables early
+
+
+
 import streamlit as st
 import openai
 import markdown2
-import os
 import tempfile
 import subprocess
 import json
@@ -10,6 +15,7 @@ import docx  # python-docx for Word
 from ghostwriter_doc_learning import Workspace
 
 workspace = Workspace()
+
 
 # Set your OpenAI API key from env
 openai.api_key = os.getenv("OPENAI_API_KEY")
@@ -89,8 +95,11 @@ else:
 if generate_clicked and product_info:
     with st.spinner("Generating..."):
         try:
+            
+            import os
             from openai import OpenAI
-            client = OpenAI(api_key="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")  # Keep your actual key here
+            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
 
             system_prompt = f"""
 You are a technical documentation assistant. Based on the product information provided, generate a professional {doc_type} for the {audience}. Use clear and concise language. Follow these guidelines:
