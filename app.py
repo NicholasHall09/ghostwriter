@@ -88,7 +88,11 @@ else:
 # Generate button
 if generate_clicked and product_info:
     with st.spinner("Generating..."):
-        system_prompt = f"""
+        try:
+            from openai import OpenAI
+            client = OpenAI(api_key="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")  # Keep your actual key here
+
+            system_prompt = f"""
 You are a technical documentation assistant. Based on the product information provided, generate a professional {doc_type} for the {audience}. Use clear and concise language. Follow these guidelines:
 - Use Markdown format
 - Use H1 for title, H2 for sections
@@ -99,7 +103,7 @@ You are a technical documentation assistant. Based on the product information pr
 If any custom notes or terminology must be included, be sure to incorporate them.
 """
 
-        user_input = f"""DOCUMENT TYPE: {doc_type}
+            user_input = f"""DOCUMENT TYPE: {doc_type}
 AUDIENCE: {audience}
 CUSTOM NOTES: {custom_notes}
 
@@ -107,45 +111,43 @@ PRODUCT INFO:
 {product_info}
 """
 
-        from openai import OpenAI
-        client = OpenAI(api_key="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")
+            response = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": system_prompt},
+                    {"role": "user", "content": user_input}
+                ],
+                temperature=0.4
+            )
 
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_input}
-            ],
-            temperature=0.4
-        )
+            markdown_output = response.choices[0].message.content
+            st.session_state["generated_md"] = markdown_output
 
-        markdown_output = response.choices[0].message.content
-        st.session_state["generated_md"] = markdown_output
-from datetime import datetime
-import uuid
+            # Save to docs/ library
+            from datetime import datetime
+            import uuid
+            os.makedirs("docs", exist_ok=True)
 
-# Create docs directory if it doesn't exist
-os.makedirs("docs", exist_ok=True)
+            doc_id = str(uuid.uuid4())
+            doc_name = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+            doc_data = {
+                "id": doc_id,
+                "name": doc_name,
+                "type": doc_type,
+                "audience": audience,
+                "date": datetime.now().strftime("%Y-%m-%d"),
+                "content": markdown_output,
+                "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
+                "filename": f"{doc_id}.md"
+            }
 
-# Generate metadata
-doc_id = str(uuid.uuid4())
-doc_name = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-doc_data = {
-    "id": doc_id,
-    "name": doc_name,
-    "type": doc_type,
-    "audience": audience,
-    "date": datetime.now().strftime("%Y-%m-%d"),
-    "content": markdown_output,
-    "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
-    "filename": f"{doc_id}.md"
-}
+            with open(f"docs/{doc_id}.json", "w") as f:
+                json.dump(doc_data, f, indent=2)
 
-# Save the document to docs/ as JSON
-with open(f"docs/{doc_id}.json", "w") as f:
-    json.dump(doc_data, f, indent=2)
+        except Exception as e:
+            st.error(f"Failed to generate or save draft: {e}")
 
-       
+
 
 # Display result
 if "generated_md" in st.session_state:
@@ -187,6 +189,42 @@ if "generated_md" in st.session_state:
 
         chatbot_json = json.dumps(qa_sections, indent=2)
         st.download_button("💬 Export to Chatbot JSON", chatbot_json, file_name="chatbot_export.json", mime="application/json")
+    st.markdown("---")
+    st.markdown("### 💾 Save to Document Library?")
+    save_col1, save_col2 = st.columns([2, 1])
+
+    with save_col1:
+        from datetime import datetime
+        default_title = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        custom_title = st.text_input("Document Title", value=default_title)
+
+    with save_col2:
+        if st.button("✅ Save to Library", use_container_width=True):
+            try:
+                import uuid
+                os.makedirs("docs", exist_ok=True)
+
+                doc_id = str(uuid.uuid4())
+                doc_data = {
+                    "id": doc_id,
+                    "name": custom_title,
+                    "type": doc_type,
+                    "audience": audience,
+                    "date": datetime.now().strftime("%Y-%m-%d"),
+                    "content": edited_md,
+                    "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
+                    "filename": f"{doc_id}.md"
+                }
+
+                with open(f"docs/{doc_id}.json", "w") as f:
+                    json.dump(doc_data, f, indent=2)
+
+                st.success(f"✅ '{custom_title}' saved to your document library!")
+
+            except Exception as e:
+                st.error(f"Failed to save draft: {e}")
+
+
 # --- Learning from Existing Docs ---
 st.markdown("---")
 st.header("📚 Learn From Existing Docs")

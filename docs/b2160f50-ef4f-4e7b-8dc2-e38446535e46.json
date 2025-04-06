@@ -1,0 +1,10 @@
+{
+  "id": "b2160f50-ef4f-4e7b-8dc2-e38446535e46",
+  "name": "Quick Start \u2013 2025-04-06 18:19",
+  "type": "Quick Start",
+  "audience": "End User",
+  "date": "2025-04-06",
+  "content": "# Quick Start Guide for EmberCore Mini UPS (Model: EC-MUPS-12V)\n\nWelcome to your EmberCore Mini UPS! Follow the steps below to set up your device quickly and efficiently.\n\n## What's in the Box\n- 1x EmberCore Mini UPS unit\n- 1x 12V/2A Power Adapter\n- 3x DC barrel-to-barrel cables (30cm)\n- User manual (English)\n\n## Installation Steps\n1. **Connect Your Device**\n   - Use one of the supplied DC barrel-to-barrel cables to connect the DC output port of the UPS to your device (router, modem, etc.).\n\n2. **Power Up the UPS**\n   - Plug the 12V/2A power adapter into the UPS.\n   - Connect the other end of the power adapter to a wall outlet.\n\n3. **Check LED Indicators**\n   - Observe the LED status indicators:\n     - **Blue**: Charging\n     - **Green**: Discharging\n     - **Red**: Fault\n\n4. **Device Protection**\n   - Your device is now protected from power outages and will receive backup power as needed.\n\n## Technical Specifications\n- **Input**: 12V/2A\n- **Output**: 12V/2A (per port, shared load)\n- **Battery**: Li-Ion 8800mAh (32.56Wh)\n- **Dimensions**: 120mm x 75mm x 30mm\n- **Weight**: 310g\n- **Operating Temperature**: 0\u00b0C to 45\u00b0C\n- **Certification**: CE, RoHS\n\n## Warnings\n- Do not open or disassemble the unit.\n- Keep away from water and high humidity.\n- Only use the supplied power adapter.\n- Do not expose to temperatures above 60\u00b0C.\n\n## Support\n- **Warranty**: 1 year limited\n- **Website**: [www.embercore.tech/support](http://www.embercore.tech/support)\n- **Email**: support@embercore.tech\n\nFor further assistance, please refer to the user manual or contact our support team. Enjoy your EmberCore Mini UPS!",
+  "tags": [],
+  "filename": "b2160f50-ef4f-4e7b-8dc2-e38446535e46.md"
+}
