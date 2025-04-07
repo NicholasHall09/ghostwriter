@@ -13,7 +13,7 @@ import json
 import fitz  # PyMuPDF for PDFs
 import docx  # python-docx for Word
 from ghostwriter_doc_learning import Workspace
-
+from datetime import datetime
 workspace = Workspace()
 
 
@@ -21,14 +21,55 @@ workspace = Workspace()
 openai.api_key = os.getenv("OPENAI_API_KEY")
 
 st.set_page_config(page_title="Ghostwriter", layout="wide")
-st.title("🧠 Ghostwriter – AI Tech Doc Generator")
-with st.expander("💬 Privacy & Data Use", expanded=False):
-    st.markdown("""
-**Your content is yours.**  
-We use ChatGPT via the OpenAI API, which never stores your prompts or documents and doesn’t use them to train future models.  
-**Ghostwriter doesn’t store anything** unless you click “Save.”  
-Your data is encrypted, and you have full control over how and when AI assists you.
-    """)
+
+# --- Custom Styling ---
+st.markdown("""
+<style>
+.big-title {
+    font-size: 2.3rem;
+    font-weight: 600;
+    padding: 0 0 0.2em 0;
+}
+.subtle {
+    color: gray;
+    font-size: 0.9rem;
+}
+.stat-box {
+    background-color: #f9f9f9;
+    border-radius: 0.5rem;
+    padding: 1rem;
+    margin: 0.5rem 0;
+    box-shadow: 0px 1px 4px rgba(0,0,0,0.05);
+}
+</style>
+""", unsafe_allow_html=True)
+
+# --- Top Section: Branding and Status ---
+st.markdown('<div class="big-title">🧠 Ghostwriter</div>', unsafe_allow_html=True)
+
+col1, col2 = st.columns([2, 1])
+
+with col1:
+    st.caption("Your AI assistant for writing, reviewing, and managing technical documents.")
+    with st.expander("💬 Privacy & Data Use", expanded=False):
+        st.markdown("""
+        **Your content is yours.**  
+        We use ChatGPT via the OpenAI API, which never stores your prompts or documents and doesn’t use them to train future models.  
+        **Ghostwriter doesn’t store anything** unless you click “Save.”  
+        Your data is encrypted, and you have full control over how and when AI assists you.
+        """)
+
+with col2:
+    import os
+    total_docs = len([f for f in os.listdir("docs") if f.endswith(".json")])
+    model_status = "🟢 Ready" if workspace.model_ready else "⚪ Not Ready"
+    st.markdown(f"""
+    <div class="stat-box">
+        <strong>📚 Docs in Library:</strong> {total_docs}<br>
+        <strong>🧠 Model:</strong> {model_status}
+    </div>
+    """, unsafe_allow_html=True)
+
 
 
 # Sidebar options

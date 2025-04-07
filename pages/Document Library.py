@@ -27,8 +27,14 @@ for filename in sorted(doc_files, reverse=True):
                 with col1:
                     st.download_button("⬇️ Download Markdown", doc['content'], file_name=doc['filename'], mime="text/markdown")
                 with col2:
-                    if st.button(f"🗑️ Delete '{doc['name']}'", key=filename):
-                        os.remove(os.path.join(DOCS_DIR, filename))
-                        st.experimental_rerun()
+                    confirm_key = f"confirm_{filename}"
+                    delete_key = f"delete_{filename}"
+
+                    if st.checkbox(f"⚠️ Yes, I want to delete this document", key=confirm_key):
+                     if st.button(f"🗑️ Delete '{doc['name']}'", key=delete_key):
+                         os.remove(os.path.join(DOCS_DIR, filename))
+                         st.success(f"✅ '{doc['name']}' deleted.")
+                         st.rerun()
+
         except Exception as e:
             st.warning(f"⚠️ Skipping '{filename}': file is invalid or corrupt. ({e})")
