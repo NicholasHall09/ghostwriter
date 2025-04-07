@@ -1,9 +1,6 @@
 import os
 from dotenv import load_dotenv
 load_dotenv()  # ✅ Load environment variables early
-
-
-
 import streamlit as st
 import openai
 import markdown2
@@ -73,20 +70,105 @@ with col2:
 
 
 # Sidebar options
-doc_type = st.sidebar.selectbox("📂 Document Type", ["Quick Start", "Install Guide", "Safety Sheet", "FAQ"])
-audience = st.sidebar.selectbox("👥 Audience", ["End User", "Technician", "Support Staff"])
-custom_notes = st.sidebar.text_area("🗒️ Must-include Phrases or Notes (optional)")
+with st.sidebar:
+    # --- Custom Styling ---
+    st.markdown("""
+    <style>
+    .sidebar-header {
+        font-size: 1.4rem;
+        font-weight: 600;
+        padding: 0.2rem 0 0.5rem 0;
+    }
+    .sidebar-divider {
+        border-top: 1px solid #ddd;
+        margin: 1.2rem 0;
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
+    # --- Header ---
+    st.markdown('<div class="sidebar-header">🧠 Ghostwriter</div>', unsafe_allow_html=True)
+    st.caption("Tech Doc Configuration")
+
+    # --- Config Controls ---
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    doc_type = st.selectbox("📂 Type of Document", ["Quick Start", "Install Guide", "Safety Sheet", "FAQ"])
+    audience = st.selectbox("👥 Audience", ["End User", "Technician", "Support Staff"])
+    custom_notes = st.text_area("📝 Must-Include Notes (Optional)", height=100)
+
+    # --- Footer ---
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.caption("v0.9 – Streamlit Edition")
+
+
+# --- Custom Page Layout Style ---
+st.markdown("""
+<style>
+/* Centered content max-width */
+.css-18e3th9 {
+    max-width: 1100px;
+    margin: auto;
+}
+
+/* Section card */
+.section-card {
+    background-color: #fdfdfd;
+    padding: 2rem 1.5rem;
+    border-radius: 0.6rem;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.06);
+    margin-bottom: 2rem;
+}
+.section-card h3 {
+    margin-top: 0;
+}
+
+/* Buttons and toggles */
+.toggle-button {
+    padding: 0.5rem 1rem;
+    margin-top: 0.5rem;
+    border-radius: 0.4rem;
+    border: 1px solid #ccc;
+    background-color: #fafafa;
+}
+.toggle-button:hover {
+    background-color: #f0f0f0;
+}
+</style>
+""", unsafe_allow_html=True)
 
 
 
 # Input area
-# Input area
-input_method = st.radio("Choose input method:", ["Paste text", "Upload file"])
+st.markdown("---")
+st.subheader("📥 Add Product Info")
+
+input_col1, input_col2 = st.columns(2)
+
+# Use session state to track the selected method
+if "input_method" not in st.session_state:
+    st.session_state.input_method = None
+
+with input_col1:
+    st.markdown("#### ✏️ Paste Text")
+    st.caption("Copy and paste product specs, notes, or descriptions.")
+    if "show_text_input" not in st.session_state:
+        st.session_state.show_text_input = False
+
+    if st.button("Add", key="text_method"):
+        st.session_state.show_text_input = not st.session_state.show_text_input
+        st.session_state.input_method = "Paste text" if st.session_state.show_text_input else None
+
+
+with input_col2:
+    st.markdown("#### 📁 Upload File")
+    st.caption("Upload a spec sheet in `.txt`, `.pdf`, `.docx`, or `.md` format.")
+    if st.button("Use File Upload", key="file_method"):
+        st.session_state.input_method = "Upload file"
+
 product_info = ""
-generate_clicked = False  # Flag to trigger draft generation
+generate_clicked = False
 
-if input_method == "Paste text":
+if st.session_state.input_method == "Paste text":
     if "pasted_text" not in st.session_state:
         st.session_state["pasted_text"] = ""
 
@@ -103,13 +185,13 @@ if input_method == "Paste text":
         if st.button("🧹 Clear", use_container_width=True):
             st.session_state["pasted_text"] = ""
 
-
     product_info = st.session_state["pasted_text"]
 
-else:
+elif st.session_state.input_method == "Upload file":
     uploaded_file = st.file_uploader(
         "Upload a spec file",
-        type=["txt", "md", "pdf", "docx", "rtf"]
+        type=["txt", "md", "pdf", "docx", "rtf"],
+        key="spec_upload"
     )
 
     if uploaded_file:
@@ -120,16 +202,14 @@ else:
 
         elif file_type == "pdf":
             with fitz.open(stream=uploaded_file.read(), filetype="pdf") as pdf:
-                text = ""
-                for page in pdf:
-                    text += page.get_text()
-                product_info = text
+                product_info = "".join([page.get_text() for page in pdf])
 
         elif file_type == "docx":
             doc = docx.Document(uploaded_file)
             product_info = "\n".join(para.text for para in doc.paragraphs)
 
     generate_clicked = st.button("🚀 Generate Draft")
+
 
 
 # Generate button
@@ -276,8 +356,9 @@ if "generated_md" in st.session_state:
 
 
 # --- Learning from Existing Docs ---
-st.markdown("---")
-st.header("📚 Learn From Existing Docs")
+st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+st.markdown("### 📚 Learn From Existing Docs")
+st.caption("Train Ghostwriter using your existing material for better feedback and consistency.")
 
 learn_file = st.file_uploader("Upload a document to train Ghostwriter's model", type=["txt", "md", "docx"], key="learn")
 learn_status = st.selectbox("Mark this document as", ["draft", "final"], key="learn_status")
@@ -291,13 +372,17 @@ if learn_file and st.button("Upload for Learning"):
         learn_text = learn_file.read().decode("utf-8")
 
     workspace.upload_document(learn_text, learn_file.name, learn_status)
-    st.success(f"{learn_file.name} uploaded and tagged as {learn_status}")
+    st.success(f"📂 {learn_file.name} uploaded and tagged as **{learn_status}**.")
     if workspace.model_ready:
-        st.info("Model is trained and ready to give feedback!")
+        st.info("✅ Model is trained and ready to give feedback!")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
 
 # --- Review Section ---
-st.markdown("---")
-st.header("🧐 Review a New Document for Feedback")
+st.markdown("<div class='section-card'>", unsafe_allow_html=True)
+st.markdown("### 🧐 Review a New Document")
+st.caption("Upload a doc to receive tone and style feedback based on your training data.")
 
 review_file = st.file_uploader("Upload a document for review", type=["txt", "md", "docx"], key="review")
 
@@ -313,9 +398,12 @@ if review_file and st.button("Run Review"):
 
     st.subheader("📊 Review Feedback")
     for category, items in feedback.items():
-        st.markdown(f"### {category.capitalize()}")
+        st.markdown(f"#### {category.capitalize()}")
         if items:
             for item in items:
                 st.write(f"• {item}")
         else:
             st.write("✅ No issues found.")
+
+st.markdown("</div>", unsafe_allow_html=True)
+
