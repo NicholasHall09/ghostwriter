@@ -13,7 +13,8 @@ workspace = Workspace()
 
 
 # Set your OpenAI API key from env
-openai.api_key = st.secrets("OPENAI_API_KEY")
+openai.api_key = st.secrets["OPENAI_API_KEY"]
+
 
 st.set_page_config(page_title="Ghostwriter", layout="wide")
 
