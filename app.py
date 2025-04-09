@@ -1,6 +1,4 @@
 import os
-from dotenv import load_dotenv
-load_dotenv()  # ✅ Load environment variables early
 import streamlit as st
 import openai
 import markdown2
@@ -15,7 +13,7 @@ workspace = Workspace()
 
 
 # Set your OpenAI API key from env
-openai.api_key = os.getenv("OPENAI_API_KEY")
+openai.api_key = st.secrets("OPENAI_API_KEY")
 
 st.set_page_config(page_title="Ghostwriter", layout="wide")
 
@@ -219,7 +217,8 @@ if generate_clicked and product_info:
             
             import os
             from openai import OpenAI
-            client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+
 
 
             system_prompt = f"""
