@@ -72,38 +72,17 @@ with st.sidebar:
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
     # Learn and Review
-    st.markdown("""
-    <div class="sidebar-header" style="display: flex; align-items: center; gap: 6px;">
-        📚 Learning & Review 
-        <div style="position: relative; display: inline-block;">
-            <span style="font-weight: bold; cursor: pointer; border-bottom: 1px dotted #999;">&#9432;</span>
-            <div style="
-                visibility: hidden;
-                background-color: #555;
-                color: #fff;
-                text-align: left;
-                border-radius: 6px;
-                padding: 8px;
-                position: absolute;
-                z-index: 1;
-                bottom: 125%;
-                left: 50%;
-                transform: translateX(-50%);
-                opacity: 0;
-                transition: opacity 0.3s;
-                width: 220px;
-            ">
-                Upload documents to help Ghostwriter learn your tone and terminology. Use "Review" to check new drafts against that style.
-            </div>
-        </div>
-        <style>
-        div.sidebar-header > div:hover div {
-            visibility: visible;
-            opacity: 1;
-        }
-        </style>
-    </div>
-    """, unsafe_allow_html=True)
+    st.markdown("### 📚 Learning & Review")
+
+    with st.expander("ℹ️ What is this?", expanded=False):
+        st.markdown("""
+    **Learn from Existing Documents**  
+    Upload finalized documents to help Ghostwriter learn your style, terminology, and tone. Once enough are uploaded, the system builds a style model.
+
+    **Review a New Document**  
+    Upload a new document to receive feedback based on your learned style and terminology. It checks for passive voice, long sentences, and inconsistent terms.
+    """)
+
 
 
     with st.expander("Learn from Existing Documents"):
