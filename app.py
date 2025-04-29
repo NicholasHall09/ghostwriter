@@ -72,7 +72,15 @@ with st.sidebar:
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
 
     # Learn and Review
-    st.markdown('<div class="sidebar-header">📚 Learning & Review</div>', unsafe_allow_html=True)
+    st.markdown("""
+    <div class="sidebar-header">
+        📚 Learning & Review 
+        <span style="cursor: help; border-bottom: 1px dotted #999;" title="Upload documents to help Ghostwriter learn your tone and terminology. Use 'Review' to check if new content matches your writing style.">
+            ℹ️
+        </span>
+    </div>
+    """, unsafe_allow_html=True)
+
 
     with st.expander("Learn from Existing Documents"):
         learn_file = st.file_uploader("Upload a document to train Ghostwriter", type=["txt", "md", "docx"], key="learn_upload")
