@@ -73,11 +73,35 @@ with st.sidebar:
 
     # Learn and Review
     st.markdown("""
-    <div class="sidebar-header">
+    <div class="sidebar-header" style="display: flex; align-items: center; gap: 6px;">
         📚 Learning & Review 
-        <span style="cursor: help; border-bottom: 1px dotted #999;" title="Upload documents to help Ghostwriter learn your tone and terminology. Use 'Review' to check if new content matches your writing style.">
-            ℹ️
-        </span>
+        <div style="position: relative; display: inline-block;">
+            <span style="font-weight: bold; cursor: pointer; border-bottom: 1px dotted #999;">&#9432;</span>
+            <div style="
+                visibility: hidden;
+                background-color: #555;
+                color: #fff;
+                text-align: left;
+                border-radius: 6px;
+                padding: 8px;
+                position: absolute;
+                z-index: 1;
+                bottom: 125%;
+                left: 50%;
+                transform: translateX(-50%);
+                opacity: 0;
+                transition: opacity 0.3s;
+                width: 220px;
+            ">
+                Upload documents to help Ghostwriter learn your tone and terminology. Use "Review" to check new drafts against that style.
+            </div>
+        </div>
+        <style>
+        div.sidebar-header > div:hover div {
+            visibility: visible;
+            opacity: 1;
+        }
+        </style>
     </div>
     """, unsafe_allow_html=True)
 
