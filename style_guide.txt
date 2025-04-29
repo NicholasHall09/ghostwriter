@@ -1,0 +1,40 @@
+📄 Dummy Style Guide: "Ghostwriter 2.0 Tech Docs"
+
+Formatting
+- Use **Markdown** syntax.
+- Use **H1** (`#`) for the document title.
+- Use **H2** (`##`) for main sections.
+- Use bullet points (`-`) for lists.
+- Always add a blank line between paragraphs.
+
+Tone & Style
+- Tone should be **professional** but **friendly**.
+- Keep sentences **short and active**.
+- Avoid passive voice unless absolutely necessary.
+- No marketing buzzwords like "revolutionary" or "game-changing."
+- Humor is allowed, but only **one joke** per 5,000 words.
+
+Language
+- Always use **American English** spelling (e.g., "color," not "colour").
+- Avoid redundant phrases (e.g., "free gift" → just "gift").
+- Never use exclamation points (!) unless quoting something.
+
+Specific Word Preferences
+Use This  | Instead of This
+--------- | ----------------
+setup    | set up (verb)
+log in   | login (noun)
+user interface | UI
+error message | error
+
+Mandatory Phrases
+- Every document must mention "**Ghostwriter 2.0**" at least **once** in the introduction.
+- At the end of every document, include the phrase:  
+  > "**Thanks for trusting Ghostwriter 2.0 to help you deliver better docs.**"
+
+Additional Rules
+- Never refer to the reader as "stupid" even if they are behaving stupidly.
+- If you have to explain something obvious, pretend you are explaining it to a very smart dog.
+- If you must reference a superhero, it must be **Batman**.
+
+✅ End of Style Guide

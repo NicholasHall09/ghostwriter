@@ -1,104 +1,112 @@
+# --- Imports ---
 import os
+import json
+import uuid
+import tempfile
+import subprocess
+from datetime import datetime
+
 import streamlit as st
 import openai
 import markdown2
-import tempfile
-import subprocess
-import json
-import fitz  # PyMuPDF for PDFs
-import docx  # python-docx for Word
+import fitz  # PyMuPDF
+import docx  # python-docx for .docx handling
+from dotenv import load_dotenv
 from ghostwriter_doc_learning import Workspace
-from datetime import datetime
+
+# --- Initialize Workspace ---
 workspace = Workspace()
 
-
-# Set your OpenAI API key from env
+# --- Load OpenAI API Key ---
 openai.api_key = st.secrets["OPENAI_API_KEY"]
 
-
-
+# --- Page Settings ---
 st.set_page_config(page_title="Ghostwriter", layout="wide")
 
-# --- Custom Styling ---
+# --- Global Custom Styling ---
 st.markdown("""
 <style>
-.big-title {
-    font-size: 2.3rem;
-    font-weight: 600;
-    padding: 0 0 0.2em 0;
-}
-.subtle {
-    color: gray;
-    font-size: 0.9rem;
-}
-.stat-box {
-    background-color: #f9f9f9;
-    border-radius: 0.5rem;
+body, .stApp { background-color: #f7f9fa; color: #333; font-family: 'Helvetica Neue', sans-serif; }
+h1, h2, h3, .big-title { color: #2C3E50; }
+.stButton>button { background-color: #5D737E; color: white; border-radius: 8px; padding: 8px 16px; border: none; transition: background-color 0.3s ease; }
+.stButton>button:hover { background-color: #4C5B68; }
+.section-card { background: #ffffff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 2rem; margin-bottom: 2rem; }
+.sidebar .sidebar-content { background-color: #f0f2f4; }
+.stAlert {
+    background-color: #e6f4ea !important;
+    color: #2c662d !important;
+    border-left: 5px solid #34a853 !important;
+    border-radius: 8px;
     padding: 1rem;
-    margin: 0.5rem 0;
-    box-shadow: 0px 1px 4px rgba(0,0,0,0.05);
+    margin-top: 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
 }
 </style>
 """, unsafe_allow_html=True)
 
-# --- Top Section: Branding and Status ---
-st.markdown('<div class="big-title">🧠 Ghostwriter</div>', unsafe_allow_html=True)
-
-col1, col2 = st.columns([2, 1])
-
-with col1:
-    st.caption("Your AI assistant for writing, reviewing, and managing technical documents.")
-    with st.expander("💬 Privacy & Data Use", expanded=False):
-        st.markdown("""
-        **Your content is yours.**  
-        We use ChatGPT via the OpenAI API, which never stores your prompts or documents and doesn’t use them to train future models.  
-        **Ghostwriter doesn’t store anything** unless you click “Save.”  
-        Your data is encrypted, and you have full control over how and when AI assists you.
-        """)
-
-with col2:
-    import os
-    total_docs = len([f for f in os.listdir("docs") if f.endswith(".json")])
-    model_status = "🟢 Ready" if workspace.model_ready else "⚪ Not Ready"
-    st.markdown(f"""
-    <div class="stat-box">
-        <strong>📚 Docs in Library:</strong> {total_docs}<br>
-        <strong>🧠 Model:</strong> {model_status}
-    </div>
-    """, unsafe_allow_html=True)
 
 
+# --- Top Section: Branding and Privacy ---
+st.markdown('<div class="big-title"> Ghostwriter</div>', unsafe_allow_html=True)
 
-# Sidebar options
-with st.sidebar:
-    # --- Custom Styling ---
+st.caption("Your AI assistant for writing, reviewing, and managing technical documents.")
+with st.expander("💬 Privacy & Data Use", expanded=False):
     st.markdown("""
-    <style>
-    .sidebar-header {
-        font-size: 1.4rem;
-        font-weight: 600;
-        padding: 0.2rem 0 0.5rem 0;
-    }
-    .sidebar-divider {
-        border-top: 1px solid #ddd;
-        margin: 1.2rem 0;
-    }
-    </style>
-    """, unsafe_allow_html=True)
+    **Your content is yours.**  
+    We use ChatGPT via the OpenAI API, which never stores your prompts or documents and doesn’t use them to train future models.  
+    **Ghostwriter doesn’t store anything** unless you click “Save.”  
+    Your data is encrypted, and you have full control over how and when AI assists you.
+    """)
 
-    # --- Header ---
+
+
+# --- Sidebar ---
+with st.sidebar:
     st.markdown('<div class="sidebar-header">🧠 Ghostwriter</div>', unsafe_allow_html=True)
-    st.caption("Tech Doc Configuration")
+    st.caption("Configure your document")
 
-    # --- Config Controls ---
-    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-    doc_type = st.selectbox("📂 Type of Document", ["Quick Start", "Install Guide", "Safety Sheet", "FAQ"])
-    audience = st.selectbox("👥 Audience", ["End User", "Technician", "Support Staff"])
-    custom_notes = st.text_area("📝 Must-Include Notes (Optional)", height=100)
+    # Document Setup
+    st.selectbox("📂 Document Type", ["Quick Start", "Install Guide", "Safety Sheet", "FAQ"], key="doc_type")
+    st.selectbox("👥 Audience", ["End User", "Technician", "Support Staff"], key="audience")
 
-    # --- Footer ---
     st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
-    st.caption("v0.9 – Streamlit Edition")
+
+    # Learn and Review
+    st.markdown('<div class="sidebar-header">📚 Learning & Review</div>', unsafe_allow_html=True)
+
+    with st.expander("Learn from Existing Documents"):
+        learn_file = st.file_uploader("Upload a document to train Ghostwriter", type=["txt", "md", "docx"], key="learn_upload")
+        learn_status = st.selectbox("Document Status", ["draft", "final"], key="learn_status")
+        if learn_file and st.button("Upload for Learning", key="learn_button"):
+            ext = learn_file.name.split('.')[-1].lower()
+            if ext == "docx":
+                doc = docx.Document(learn_file)
+                learn_text = "\n".join(p.text for p in doc.paragraphs)
+            else:
+                learn_text = learn_file.read().decode("utf-8")
+            workspace.upload_document(learn_text, learn_file.name, learn_status)
+            st.success(f"✅ {learn_file.name} uploaded and tagged as {learn_status}.")
+
+    with st.expander("Review a New Document"):
+        review_file = st.file_uploader("Upload for review", type=["txt", "md", "docx"], key="review_upload")
+        if review_file and st.button("Run Review", key="review_button"):
+            ext = review_file.name.split('.')[-1].lower()
+            if ext == "docx":
+                doc = docx.Document(review_file)
+                review_text = "\n".join(p.text for p in doc.paragraphs)
+            else:
+                review_text = review_file.read().decode("utf-8")
+            feedback = workspace.review_document(review_text)
+            st.subheader("📊 Review Feedback")
+            for category, items in feedback.items():
+                st.markdown(f"#### {category.capitalize()}")
+                for item in (items or ["✅ No issues found."]):
+                    st.write(f"- {item}")
+
+    st.markdown('<div class="sidebar-divider"></div>', unsafe_allow_html=True)
+    st.caption("Ghostwriter v0.9 – Streamlit Edition")
+
+
 
 
 # --- Custom Page Layout Style ---
@@ -136,157 +144,165 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+# --- Load persisted style guide at startup ---
+STYLE_PATH = "style_guide.txt"
 
+if "style_guide" not in st.session_state and os.path.exists(STYLE_PATH):
+    with open(STYLE_PATH, "r") as f:
+        st.session_state["style_guide"] = f.read()
+        st.session_state["style_uploaded_at"] = datetime.fromtimestamp(os.path.getmtime(STYLE_PATH)).strftime("%Y-%m-%d %H:%M:%S")
+        st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
 
-# Input area
+# --- Upload Style Guide ---
 st.markdown("---")
-st.subheader("📥 Add Product Info")
+st.header("📘 Upload a Style Guide")
+
+style_file = st.file_uploader(
+    "Upload a style guide (.txt, .docx, .pdf)",
+    type=["txt", "docx", "pdf"],
+    key="style_guide_upload"
+)
+
+if style_file:
+    ext = style_file.name.split('.')[-1].lower()
+
+    if ext == "pdf":
+        with fitz.open(stream=style_file.read(), filetype="pdf") as pdf:
+            style_text = "".join([page.get_text() for page in pdf])
+    elif ext == "docx":
+        doc = docx.Document(style_file)
+        style_text = "\n".join([p.text for p in doc.paragraphs])
+    else:
+        style_text = style_file.read().decode("utf-8")
+
+    # Save to session and disk
+    st.session_state["style_guide"] = style_text
+    st.session_state["style_uploaded_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
+
+    with open(STYLE_PATH, "w") as f:
+        f.write(style_text)
+
+    st.success(f"""
+✅ **Style guide uploaded and saved!**
+
+- **Uploaded by:** {st.session_state['style_uploaded_by']}
+- **Uploaded at:** {st.session_state['style_uploaded_at']}
+""")
+
+elif "style_guide" in st.session_state:
+    st.info(f"""
+📘 **Active Style Guide**
+
+- **Uploaded by:** {st.session_state.get('style_uploaded_by', 'Unknown')}
+- **Uploaded at:** {st.session_state.get('style_uploaded_at', 'Unknown')}
+""")
+
+
+# --- Add Product Info ---
+st.markdown("---")
+st.header("📥 Add Product Information")
 
 input_col1, input_col2 = st.columns(2)
 
-# Use session state to track the selected method
 if "input_method" not in st.session_state:
     st.session_state.input_method = None
 
 with input_col1:
     st.markdown("#### ✏️ Paste Text")
-    st.caption("Copy and paste product specs, notes, or descriptions.")
-    if "show_text_input" not in st.session_state:
-        st.session_state.show_text_input = False
-
-    if st.button("Add", key="text_method"):
-        st.session_state.show_text_input = not st.session_state.show_text_input
-        st.session_state.input_method = "Paste text" if st.session_state.show_text_input else None
-
+    if st.button("Paste Text", key="text_input_button"):
+        st.session_state.input_method = "paste"
 
 with input_col2:
     st.markdown("#### 📁 Upload File")
-    st.caption("Upload a spec sheet in `.txt`, `.pdf`, `.docx`, or `.md` format.")
-    if st.button("Use File Upload", key="file_method"):
-        st.session_state.input_method = "Upload file"
+    if st.button("Upload File", key="file_upload_button"):
+        st.session_state.input_method = "upload"
 
 product_info = ""
 generate_clicked = False
 
-if st.session_state.input_method == "Paste text":
-    if "pasted_text" not in st.session_state:
-        st.session_state["pasted_text"] = ""
+# Pull document settings from sidebar
+doc_type = st.session_state.get("doc_type", "Quick Start")
+audience = st.session_state.get("audience", "End User")
 
+if st.session_state.input_method == "paste":
     st.session_state["pasted_text"] = st.text_area(
-        "Paste your product info or spec here",
-        value=st.session_state["pasted_text"],
-        height=400
+        "Paste your product specifications or description here:",
+        value=st.session_state.get("pasted_text", ""),
+        height=300
     )
-
-    col1, col2 = st.columns([1, 1])
-    with col1:
-        generate_clicked = st.button("🚀 Generate Draft", use_container_width=True)
-    with col2:
-        if st.button("🧹 Clear", use_container_width=True):
-            st.session_state["pasted_text"] = ""
-
     product_info = st.session_state["pasted_text"]
 
-elif st.session_state.input_method == "Upload file":
+    col1, col2 = st.columns(2)
+    with col1:
+        generate_clicked = st.button("🚀 Generate Draft", key="generate_draft_paste")
+    with col2:
+        if st.button("🧹 Clear", key="clear_paste"):
+            st.session_state["pasted_text"] = ""
+
+elif st.session_state.input_method == "upload":
     uploaded_file = st.file_uploader(
-        "Upload a spec file",
+        "Upload a specification file (.txt, .md, .pdf, .docx, .rtf)",
         type=["txt", "md", "pdf", "docx", "rtf"],
-        key="spec_upload"
+        key="spec_file_upload"
     )
 
     if uploaded_file:
-        file_type = uploaded_file.name.split('.')[-1].lower()
-
-        if file_type in ["txt", "md", "rtf"]:
-            product_info = uploaded_file.read().decode("utf-8")
-
-        elif file_type == "pdf":
+        ext = uploaded_file.name.split('.')[-1].lower()
+        if ext == "pdf":
             with fitz.open(stream=uploaded_file.read(), filetype="pdf") as pdf:
                 product_info = "".join([page.get_text() for page in pdf])
-
-        elif file_type == "docx":
+        elif ext == "docx":
             doc = docx.Document(uploaded_file)
-            product_info = "\n".join(para.text for para in doc.paragraphs)
+            product_info = "\n".join(p.text for p in doc.paragraphs)
+        else:
+            product_info = uploaded_file.read().decode("utf-8")
 
-    generate_clicked = st.button("🚀 Generate Draft")
+    generate_clicked = st.button("🚀 Generate Draft", key="generate_draft_upload")
 
 
 
-# Generate button
+# --- Generate Draft ---
 if generate_clicked and product_info:
-    with st.spinner("Generating..."):
+    with st.spinner("Generating draft..."):
         try:
-            
-            import os
-            from openai import OpenAI
-            client = OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
-
-
-
-            system_prompt = f"""
-You are a technical documentation assistant. Based on the product information provided, generate a professional {doc_type} for the {audience}. Use clear and concise language. Follow these guidelines:
-- Use Markdown format
-- Use H1 for title, H2 for sections
-- Use bullet points or numbered lists for steps
-- Avoid repetition 
-- Avoid fluff or marketing jargon
-- Style: Direct, helpful, and easy to scan
-
-If any custom notes or terminology must be included, be sure to incorporate them.
+            client = openai.OpenAI(api_key=st.secrets["OPENAI_API_KEY"])
+            base_prompt = f"""
+You are a technical writer with all the experience and expertise of a 20 year career professional. Generate a professional {st.session_state['doc_type']} for {st.session_state['audience']}.
+Use Markdown format, H1/H2, bullets or numbers, avoid repetition and marketing fluff. Be direct and helpful. 
 """
+            if "style_guide" in st.session_state:
+                base_prompt += f"\nStrictly follow this additional style guide:\n{st.session_state['style_guide']}"
 
-            user_input = f"""DOCUMENT TYPE: {doc_type}
-AUDIENCE: {audience}
-CUSTOM NOTES: {custom_notes}
-
+            user_input = f"""DOCUMENT TYPE: {st.session_state['doc_type']}
+AUDIENCE: {st.session_state['audience']}
 PRODUCT INFO:
 {product_info}
 """
 
             response = client.chat.completions.create(
                 model="gpt-4o-mini",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_input}
-                ],
+                messages=[{"role": "system", "content": base_prompt}, {"role": "user", "content": user_input}],
                 temperature=0.4
             )
 
-            markdown_output = response.choices[0].message.content
-            st.session_state["generated_md"] = markdown_output
-
-            # Save to docs/ library
-            from datetime import datetime
-            import uuid
-            os.makedirs("docs", exist_ok=True)
-
-            doc_id = str(uuid.uuid4())
-            doc_name = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
-            doc_data = {
-                "id": doc_id,
-                "name": doc_name,
-                "type": doc_type,
-                "audience": audience,
-                "date": datetime.now().strftime("%Y-%m-%d"),
-                "content": markdown_output,
-                "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
-                "filename": f"{doc_id}.md"
-            }
-
-            with open(f"docs/{doc_id}.json", "w") as f:
-                json.dump(doc_data, f, indent=2)
+            draft = response.choices[0].message.content
+            st.session_state["generated_md"] = draft
 
         except Exception as e:
-            st.error(f"Failed to generate or save draft: {e}")
+            st.error(f"Error generating draft: {e}")
 
-
-
-# Display result
+# --- Display Draft, Download, and Save ---
 if "generated_md" in st.session_state:
-    st.subheader("📝 Markdown Draft")
-    edited_md = st.text_area("Edit your draft below:", value=st.session_state["generated_md"], height=400)
+    st.subheader("📝 Your Markdown Draft")
+    edited_md = st.text_area(
+        "Edit your draft below:",
+        value=st.session_state["generated_md"],
+        height=400
+    )
 
-    col1, col2, col3, col4 = st.columns(4)
+    st.markdown("### 📥 Download Options")
+    col1, col2, col3 = st.columns(3)
 
     with col1:
         st.download_button("⬇️ Download Markdown", edited_md, file_name="draft.md", mime="text/markdown")
@@ -296,116 +312,48 @@ if "generated_md" in st.session_state:
         st.download_button("🌐 Export to HTML", html_output, file_name="draft.html", mime="text/html")
 
     with col3:
-        # Save to temporary file
-        with tempfile.NamedTemporaryFile("w+", suffix=".md", delete=False) as tmp_md:
-            tmp_md.write(edited_md)
-            tmp_md_path = tmp_md.name
-
-        pdf_output_path = tmp_md_path.replace(".md", ".pdf")
+        with tempfile.NamedTemporaryFile("w+", suffix=".md", delete=False) as tmp:
+            tmp.write(edited_md)
+            tmp_path = tmp.name
         try:
-            subprocess.run(["pandoc", tmp_md_path, "-o", pdf_output_path], check=True)
-            with open(pdf_output_path, "rb") as pdf_file:
-                st.download_button("📄 Export to PDF", pdf_file.read(), file_name="draft.pdf", mime="application/pdf")
+            subprocess.run(["pandoc", tmp_path, "-o", tmp_path.replace(".md", ".pdf")], check=True)
+            with open(tmp_path.replace(".md", ".pdf"), "rb") as pdf:
+                st.download_button("📄 Export to PDF", pdf.read(), file_name="draft.pdf", mime="application/pdf")
         except Exception as e:
             st.error(f"PDF export failed: {e}")
 
-    with col4:
-        # Convert to chatbot-style JSON
-        qa_sections = [{"question": line.strip().lstrip("# ").strip(), "answer": ""} 
-                       for line in edited_md.split("\n") if line.startswith("## ")]
-        for i, section in enumerate(qa_sections):
-            section["answer"] = "\n".join([
-                line for line in edited_md.split("\n")[i+1:] 
-                if not line.startswith("## ") and line.strip()
-            ])[:300]  # Keep it basic
-
-        chatbot_json = json.dumps(qa_sections, indent=2)
-        st.download_button("💬 Export to Chatbot JSON", chatbot_json, file_name="chatbot_export.json", mime="application/json")
     st.markdown("---")
-    st.markdown("### 💾 Save to Document Library?")
+    st.subheader("💾 Save to Document Library?")
+
     save_col1, save_col2 = st.columns([2, 1])
 
     with save_col1:
-        from datetime import datetime
-        default_title = f"{doc_type} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
+        default_title = f"{st.session_state.get('doc_type', 'Document')} – {datetime.now().strftime('%Y-%m-%d %H:%M')}"
         custom_title = st.text_input("Document Title", value=default_title)
 
     with save_col2:
-        if st.button("✅ Save to Library", use_container_width=True):
+        if st.button("✅ Save Draft"):
             try:
-                import uuid
                 os.makedirs("docs", exist_ok=True)
-
                 doc_id = str(uuid.uuid4())
                 doc_data = {
                     "id": doc_id,
                     "name": custom_title,
-                    "type": doc_type,
-                    "audience": audience,
+                    "type": st.session_state.get("doc_type", "Quick Start"),
+                    "audience": st.session_state.get("audience", "End User"),
                     "date": datetime.now().strftime("%Y-%m-%d"),
                     "content": edited_md,
-                    "tags": [t.strip() for t in custom_notes.split(",")] if custom_notes else [],
+                    "tags": [],
                     "filename": f"{doc_id}.md"
                 }
-
                 with open(f"docs/{doc_id}.json", "w") as f:
                     json.dump(doc_data, f, indent=2)
-
                 st.success(f"✅ '{custom_title}' saved to your document library!")
-
             except Exception as e:
                 st.error(f"Failed to save draft: {e}")
 
 
-# --- Learning from Existing Docs ---
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
-st.markdown("### 📚 Learn From Existing Docs")
-st.caption("Train Ghostwriter using your existing material for better feedback and consistency.")
-
-learn_file = st.file_uploader("Upload a document to train Ghostwriter's model", type=["txt", "md", "docx"], key="learn")
-learn_status = st.selectbox("Mark this document as", ["draft", "final"], key="learn_status")
-
-if learn_file and st.button("Upload for Learning"):
-    ext = learn_file.name.split('.')[-1].lower()
-    if ext == "docx":
-        doc = docx.Document(learn_file)
-        learn_text = "\n".join(p.text for p in doc.paragraphs)
-    else:
-        learn_text = learn_file.read().decode("utf-8")
-
-    workspace.upload_document(learn_text, learn_file.name, learn_status)
-    st.success(f"📂 {learn_file.name} uploaded and tagged as **{learn_status}**.")
-    if workspace.model_ready:
-        st.info("✅ Model is trained and ready to give feedback!")
-
-st.markdown("</div>", unsafe_allow_html=True)
 
 
-# --- Review Section ---
-st.markdown("<div class='section-card'>", unsafe_allow_html=True)
-st.markdown("### 🧐 Review a New Document")
-st.caption("Upload a doc to receive tone and style feedback based on your training data.")
 
-review_file = st.file_uploader("Upload a document for review", type=["txt", "md", "docx"], key="review")
-
-if review_file and st.button("Run Review"):
-    ext = review_file.name.split('.')[-1].lower()
-    if ext == "docx":
-        doc = docx.Document(review_file)
-        review_text = "\n".join(p.text for p in doc.paragraphs)
-    else:
-        review_text = review_file.read().decode("utf-8")
-
-    feedback = workspace.review_document(review_text)
-
-    st.subheader("📊 Review Feedback")
-    for category, items in feedback.items():
-        st.markdown(f"#### {category.capitalize()}")
-        if items:
-            for item in items:
-                st.write(f"• {item}")
-        else:
-            st.write("✅ No issues found.")
-
-st.markdown("</div>", unsafe_allow_html=True)
 
