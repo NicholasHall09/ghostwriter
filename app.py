@@ -27,7 +27,13 @@ st.set_page_config(page_title="Ghostwriter", layout="wide")
 st.markdown("""
 <style>
 body, .stApp { background-color: #f7f9fa; color: #333; font-family: 'Helvetica Neue', sans-serif; }
-h1, h2, h3, .big-title { color: #2C3E50; }
+h1, h2, h3, .big-title {
+    font-size: 48px;
+    font-weight: 700;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #2C3E50;
+}
 .stButton>button { background-color: #5D737E; color: white; border-radius: 8px; padding: 8px 16px; border: none; transition: background-color 0.3s ease; }
 .stButton>button:hover { background-color: #4C5B68; }
 .section-card { background: #ffffff; border-radius: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); padding: 2rem; margin-bottom: 2rem; }
@@ -77,7 +83,7 @@ with st.sidebar:
     with st.expander("ℹ️ What is this?", expanded=False):
         st.markdown("""
     **Learn from Existing Documents**  
-    Upload finalized documents to help Ghostwriter learn your style, terminology, and tone. Once enough are uploaded, the system builds a style model.
+    Upload finalized documents to help Ghostwriter learn your style, terminology, and tone. Once 5 documents or 10,000 words are uploaded, the system builds a style model.
 
     **Review a New Document**  
     Upload a new document to receive feedback based on your learned style and terminology. It checks for passive voice, long sentences, and inconsistent terms.
@@ -154,60 +160,6 @@ st.markdown("""
 }
 </style>
 """, unsafe_allow_html=True)
-
-# --- Load persisted style guide at startup ---
-STYLE_PATH = "style_guide.txt"
-
-if "style_guide" not in st.session_state and os.path.exists(STYLE_PATH):
-    with open(STYLE_PATH, "r") as f:
-        st.session_state["style_guide"] = f.read()
-        st.session_state["style_uploaded_at"] = datetime.fromtimestamp(os.path.getmtime(STYLE_PATH)).strftime("%Y-%m-%d %H:%M:%S")
-        st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
-
-# --- Upload Style Guide ---
-st.markdown("---")
-st.header("📘 Upload a Style Guide")
-
-style_file = st.file_uploader(
-    "Upload a style guide (.txt, .docx, .pdf)",
-    type=["txt", "docx", "pdf"],
-    key="style_guide_upload"
-)
-
-if style_file:
-    ext = style_file.name.split('.')[-1].lower()
-
-    if ext == "pdf":
-        with fitz.open(stream=style_file.read(), filetype="pdf") as pdf:
-            style_text = "".join([page.get_text() for page in pdf])
-    elif ext == "docx":
-        doc = docx.Document(style_file)
-        style_text = "\n".join([p.text for p in doc.paragraphs])
-    else:
-        style_text = style_file.read().decode("utf-8")
-
-    # Save to session and disk
-    st.session_state["style_guide"] = style_text
-    st.session_state["style_uploaded_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
-
-    with open(STYLE_PATH, "w") as f:
-        f.write(style_text)
-
-    st.success(f"""
-✅ **Style guide uploaded and saved!**
-
-- **Uploaded by:** {st.session_state['style_uploaded_by']}
-- **Uploaded at:** {st.session_state['style_uploaded_at']}
-""")
-
-elif "style_guide" in st.session_state:
-    st.info(f"""
-📘 **Active Style Guide**
-
-- **Uploaded by:** {st.session_state.get('style_uploaded_by', 'Unknown')}
-- **Uploaded at:** {st.session_state.get('style_uploaded_at', 'Unknown')}
-""")
 
 
 # --- Add Product Info ---
@@ -362,6 +314,62 @@ if "generated_md" in st.session_state:
                 st.success(f"✅ '{custom_title}' saved to your document library!")
             except Exception as e:
                 st.error(f"Failed to save draft: {e}")
+
+# --- Load persisted style guide at startup ---
+STYLE_PATH = "style_guide.txt"
+
+if "style_guide" not in st.session_state and os.path.exists(STYLE_PATH):
+    with open(STYLE_PATH, "r") as f:
+        st.session_state["style_guide"] = f.read()
+        st.session_state["style_uploaded_at"] = datetime.fromtimestamp(os.path.getmtime(STYLE_PATH)).strftime("%Y-%m-%d %H:%M:%S")
+        st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
+
+# --- Upload Style Guide ---
+st.markdown("---")
+style_guide_expanded = "style_guide" not in st.session_state
+
+with st.expander("📘 Upload a Style Guide", expanded=style_guide_expanded):
+    style_file = st.file_uploader(
+        "Upload a style guide (.txt, .docx, .pdf)",
+        type=["txt", "docx", "pdf"],
+        key="style_guide_upload"
+    )
+
+    if style_file:
+        ext = style_file.name.split('.')[-1].lower()
+
+        if ext == "pdf":
+            with fitz.open(stream=style_file.read(), filetype="pdf") as pdf:
+                style_text = "".join([page.get_text() for page in pdf])
+        elif ext == "docx":
+            doc = docx.Document(style_file)
+            style_text = "\n".join([p.text for p in doc.paragraphs])
+        else:
+            style_text = style_file.read().decode("utf-8")
+
+        # Save to session and disk
+        st.session_state["style_guide"] = style_text
+        st.session_state["style_uploaded_at"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        st.session_state["style_uploaded_by"] = os.getenv("USER", "Unknown User")
+
+        with open("style_guide.txt", "w") as f:
+            f.write(style_text)
+
+        st.success(f"""
+✅ **Style guide uploaded and saved!**
+
+- **Uploaded by:** {st.session_state['style_uploaded_by']}
+- **Uploaded at:** {st.session_state['style_uploaded_at']}
+""")
+
+# Display current guide info
+if "style_guide" in st.session_state:
+    st.info(f"""
+📘 **Active Style Guide**
+
+- **Uploaded by:** {st.session_state.get('style_uploaded_by', 'Unknown')}
+- **Uploaded at:** {st.session_state.get('style_uploaded_at', 'Unknown')}
+""")
 
 
 
