@@ -1,1 +1,6 @@
 PyMuPDF==1.25.5
+streamlit
+openai
+python-docx
+markdown2
+python-dotenv
